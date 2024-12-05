@@ -11,23 +11,33 @@ class Task
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
+    #[ORM\Column(type: 'integer')]
+    private $id;
 
-    #[ORM\Column(length: 255)]
-    private ?string $title = null;
+    #[ORM\Column(type: 'string', length: 255)]
+    #[Assert\NotBlank]
+    #[Assert\Length(min: 3, max: 255)]
+    private $title;
 
-    #[ORM\Column(type: Types::TEXT)]
-    private ?string $description = null;
+    #[ORM\Column(type: 'text')]
+    #[Assert\NotBlank(message: "La description est obligatoire.")]
+    private $description;
 
-    #[ORM\Column(length: 50)]
+    #[ORM\Column(type: 'string', length: 20)]
+    #[Assert\Choice(choices: ['todo', 'in_progress', 'done'], message: "Statut invalide.")]
     private ?string $status = null;
 
-    #[ORM\Column]
-    private ?\DateTimeImmutable $created_at = null;
+    #[ORM\Column(type: 'datetime')]
+    private $created_at ;
 
-    #[ORM\Column]
-    private ?\DateTimeImmutable $updated_at = null;
+    #[ORM\Column(type: 'datetime')]
+    private $updated_at;
+
+    public function __construct()
+    {
+        $this->created_at = new \DateTimeImmutable();
+        $this->updated_at = new \DateTimeImmutable();
+    }
 
     public function getId(): ?int
     {

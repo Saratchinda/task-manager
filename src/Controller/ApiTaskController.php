@@ -9,106 +9,133 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 class ApiTaskController extends AbstractController
 {
-    // GET /api/task : Récupérer toutes les tâches
-    #[Route('/api/task', name: 'app_api_task_get_all', methods: ['GET'])]
-    public function getAllTasks(TaskRepository $taskRepository): JsonResponse
-    {
-        $tasks = $taskRepository->findAll();
+    // 1. Création d'une tâche
+    #[Route('/api/task', name: 'create_task', methods: ['POST'])]
+    public function createTask(
+        Request $request,
+        EntityManagerInterface $em,
+        ValidatorInterface $validator
+    ): JsonResponse {
+        $data = json_decode($request->getContent(), true);
 
-        // Convertir les objets Task en tableaux associatifs pour JSON
-        $taskData = array_map(function (Task $task) {
-            return [
+        // Création de l'objet Task
+        $task = new Task();
+        $task->setTitle($data['title'] ?? '')
+             ->setDescription($data['description'] ?? '')
+             ->setStatus($data['status'] ?? 'todo');
+
+        // Validation des données
+        $errors = $validator->validate($task);
+
+        if (count($errors) > 0) {
+            return $this->json(['errors' => (string) $errors], 400); // Retour des erreurs en cas de validation échouée
+        }
+
+        // Enregistrement de la tâche dans la base de données
+        $em->persist($task);
+        $em->flush();
+
+        return $this->json([
+            'message' => 'Tâche créée avec succès',
+            'task' => [
                 'id' => $task->getId(),
                 'title' => $task->getTitle(),
                 'description' => $task->getDescription(),
                 'status' => $task->getStatus(),
                 'created_at' => $task->getCreatedAt()->format('Y-m-d H:i:s'),
                 'updated_at' => $task->getUpdatedAt()->format('Y-m-d H:i:s'),
-            ];
-        }, $tasks);
-
-        return $this->json($taskData);
+            ]
+        ], 201);
     }
 
-    // GET /api/task/{id} : Récupérer une tâche spécifique
-    #[Route('/api/task/{id}', name: 'app_api_task_get_one', methods: ['GET'])]
-    public function getTask(TaskRepository $taskRepository, int $id): JsonResponse
-    {
+    // 2. Modification d'une tâche
+    #[Route('/api/task/{id}', name: 'update_task', methods: ['PUT'])]
+    public function updateTask(
+        int $id,
+        Request $request,
+        EntityManagerInterface $em,
+        TaskRepository $taskRepository,
+        ValidatorInterface $validator
+    ): JsonResponse {
         $task = $taskRepository->find($id);
 
         if (!$task) {
-            return $this->json(['message' => 'Task not found'], 404);
-        }
-
-        $taskData = [
-            'id' => $task->getId(),
-            'title' => $task->getTitle(),
-            'description' => $task->getDescription(),
-            'status' => $task->getStatus(),
-            'created_at' => $task->getCreatedAt()->format('Y-m-d H:i:s'),
-            'updated_at' => $task->getUpdatedAt()->format('Y-m-d H:i:s'),
-        ];
-
-        return $this->json($taskData);
-    }
-
-    // POST : Créer une nouvelle tâche
-    #[Route('/api/task', name: 'app_api_task_create', methods: ['POST'])]
-    public function createTask(Request $request, EntityManagerInterface $entityManager): JsonResponse
-    {
-        $data = json_decode($request->getContent(), true);
-
-        $task = new Task();
-        $task->setTitle($data['title'] ?? 'Untitled Task');
-        $task->setDescription($data['description'] ?? 'No description');
-        $task->setStatus($data['status'] ?? 'todo');
-        $task->setCreatedAt(new \DateTimeImmutable());
-        $task->setUpdatedAt(new \DateTimeImmutable());
-
-        $entityManager->persist($task);
-        $entityManager->flush();
-
-        return $this->json(['message' => 'Task created successfully', 'id' => $task->getId()], 201);
-    }
-
-    // PUT : Mettre à jour une tâche existante
-    #[Route('/api/task/{id}', name: 'app_api_task_update', methods: ['PUT'])]
-    public function updateTask(Request $request, TaskRepository $taskRepository, EntityManagerInterface $entityManager, int $id): JsonResponse
-    {
-        $task = $taskRepository->find($id);
-
-        if (!$task) {
-            return $this->json(['message' => 'Task not found'], 404);
+            return $this->json(['message' => 'Tâche non trouvée.'], 404);
         }
 
         $data = json_decode($request->getContent(), true);
 
-        $task->setTitle($data['title'] ?? $task->getTitle());
-        $task->setDescription($data['description'] ?? $task->getDescription());
-        $task->setStatus($data['status'] ?? $task->getStatus());
-        $task->setUpdatedAt(new \DateTimeImmutable());
+        $task->setTitle($data['title'] ?? $task->getTitle())
+             ->setDescription($data['description'] ?? $task->getDescription())
+             ->setStatus($data['status'] ?? $task->getStatus());
 
-        $entityManager->flush();
+        $errors = $validator->validate($task);
 
-        return $this->json(['message' => 'Task updated successfully']);
+        if (count($errors) > 0) {
+            return $this->json(['errors' => (string) $errors], 400);
+        }
+
+        $task->setUpdatedAt(new \DateTimeImmutable()); // Mise à jour de la date de modification
+        $em->flush();
+
+        return $this->json([
+            'message' => 'Tâche mise à jour avec succès',
+            'task' => [
+                'id' => $task->getId(),
+                'title' => $task->getTitle(),
+                'description' => $task->getDescription(),
+                'status' => $task->getStatus(),
+                'created_at' => $task->getCreatedAt()->format('Y-m-d H:i:s'),
+                'updated_at' => $task->getUpdatedAt()->format('Y-m-d H:i:s'),
+            ]
+        ]);
     }
 
-    // DELETE  : Supprimer une tâche
-    #[Route('/api/task/{id}', name: 'app_api_task_delete', methods: ['DELETE'])]
-    public function deleteTask(TaskRepository $taskRepository, EntityManagerInterface $entityManager, int $id): JsonResponse
-    {
+    // 3. Suppression d'une tâche
+    #[Route('/api/task/{id}', name: 'delete_task', methods: ['DELETE'])]
+    public function deleteTask(
+        int $id,
+        EntityManagerInterface $em,
+        TaskRepository $taskRepository
+    ): JsonResponse {
         $task = $taskRepository->find($id);
 
         if (!$task) {
-            return $this->json(['message' => 'Task not found'], 404);
+            return $this->json(['message' => 'Tâche non trouvée.'], 404);
         }
 
-        $entityManager->remove($task);
-        $entityManager->flush();
+        $em->remove($task);
+        $em->flush();
 
-        return $this->json(['message' => 'Task deleted successfully']);
+        return $this->json(['message' => 'Tâche supprimée avec succès']);
+    }
+
+    // 4. Liste paginée des tâches triées par statut
+    #[Route('/api/tasks', name: 'list_tasks', methods: ['GET'])]
+    public function listTasks(
+        Request $request,
+        TaskRepository $taskRepository
+    ): JsonResponse {
+        // Paramètre de la page
+        $page = $request->query->getInt('page', 1); // Par défaut, page 1
+        $tasks = $taskRepository->findBy([], ['status' => 'ASC'], 10, ($page - 1) * 10);
+
+        return $this->json($tasks);
+    }
+
+    // 5. Recherche par titre ou description
+    #[Route('/api/tasks/search', name: 'search_tasks', methods: ['GET'])]
+    public function searchTasks(
+        Request $request,
+        TaskRepository $taskRepository
+    ): JsonResponse {
+        $query = $request->query->get('query', ''); // Récupère le paramètre de recherche
+        $tasks = $taskRepository->searchByTitleOrDescription($query);
+
+        return $this->json($tasks);
     }
 }
