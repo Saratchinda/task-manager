@@ -26,21 +26,18 @@ cd task-manager
 Exécutez la commande suivante pour installer toutes les dépendances nécessaires au bon fonctionnement de l'application :
 
 bash
-Copier le code
 composer install
 
 3. Configurer la base de données
 Modifiez le fichier .env ou .env.local pour configurer votre connexion à la base de données PostgreSQL :
 
 dotenv
-Copier le code
 DATABASE_URL="pgsql://username:password@127.0.0.1:5432/task_manager?serverVersion=13&charset=utf8"
 Remplacez username et password par vos informations de connexion PostgreSQL.
 
 Ensuite, exécutez les commandes suivantes pour créer les tables de la base de données :
 
 bash
-Copier le code
 php bin/console doctrine:database:create
 php bin/console doctrine:migrations:migrate
 
@@ -48,7 +45,6 @@ php bin/console doctrine:migrations:migrate
 Après l'installation des dépendances et la configuration de la base de données, vous pouvez démarrer l'application avec la commande suivante :
 
 bash
-Copier le code
 php bin/console server:run
 L'application sera disponible à l'adresse http://127.0.0.1:8000.
 
@@ -59,20 +55,20 @@ L'application utilise PHPUnit pour les tests unitaires et fonctionnels. Voici co
 Si vous ne l'avez pas déjà fait, installez les dépendances nécessaires pour les tests avec Composer :
 
 bash
-Copier le code
 composer require --dev symfony/test-pack
 composer require --dev phpunit/phpunit
+
 2. Exécuter les tests
 Pour exécuter l'ensemble des tests (tests unitaires et fonctionnels), utilisez la commande suivante :
 
 bash
-Copier le code
 php bin/phpunit
+
 Si vous souhaitez exécuter un test spécifique, vous pouvez préciser son fichier comme suit :
 
 bash
-Copier le code
 php bin/phpunit tests/TaskTest.php
+
 Cela lancera uniquement les tests définis dans TaskTest.php.
 
 Explication des choix techniques
