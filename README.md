@@ -91,7 +91,6 @@ Les erreurs sont gérées de manière centralisée dans les contrôleurs. Si une
 ### Instructions à suivre :
 
 1. **Personnalisez le lien GitHub** : Remplacez `https://github.com/username/task-manager.git` par l'URL de votre propre repository GitHub.
-2. **Modifiez les informations d'auteur** : Remplacez `Votre Nom` par votre nom et le lien vers votre profil GitHub dans la section "Auteurs".
-3. **Configurer les détails de votre base de données** : Assurez-vous de mettre à jour le lien de base de données dans le fichier `.env`.
+2. **Configurer les détails de votre base de données** : Assurez-vous de mettre à jour le lien de base de données dans le fichier `.env`.
 
-Ce fichier `README.md` vous fournira toutes les informations nécessaires pour exécuter et tester l'ap
+Ce fichier `README.md` vous fournira toutes les informations nécessaires pour exécuter et tester l'application.
